@@ -12,6 +12,8 @@ connectDb();
 app.use(express.json());
 app.use(cors());
 
+const adminPassword = process.env.PASSWORD;
+
 const Schema = mongoose.Schema;
 const AddressSchema = new Schema(
   {
@@ -23,6 +25,29 @@ const AddressSchema = new Schema(
 
 const Address = mongoose.model('Address', AddressSchema);
 
+const admin2FA = (req, res, next) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ error: 'Password is required' });
+  }
+
+  if (password === adminPassword) {
+    req.isCorrectPassword = true;
+    next();
+  } else {
+    req.isCorrectPassword = false;
+    next();
+  }
+};
+
+app.post('/api/v1/admin-auth', admin2FA, (req, res) => {
+  if (req.isCorrectPassword) {
+    res.json({ authenticated: true });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
 
 app.get('/api/v1', async (req, res) => {
   try {
